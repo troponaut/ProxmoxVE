@@ -489,7 +489,7 @@ msg_ok "Installed pre-requisite packages to Debian 12 Qcow2 Disk Image successfu
 
 if [ -n $SSH_AUTHORIZED_KEY ]; then
   msg_info "Installing root SSH Key to Debian 12 Qcow2 Disk Image"
-  virt-customize -q -a "${FILE}" --ssh-inject "root:string:${SSH_AUTHORIZED_KEY}" >/dev/null
+  virt-customize -q -a "${FILE}" --ssh-inject root:string:"${SSH_AUTHORIZED_KEY}" >/dev/null
   msg_ok "Installed root SSH Key to Debian 12 Qcow2 Disk Image successfully"
 else
   msg_info "Skipping SSH Key installation as no SSH key is provided"
