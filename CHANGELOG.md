@@ -16,6 +16,34 @@ All LXC instances created using this repository come pre-installed with Midnight
 
 ## 2025-05-12
 
+### 🆕 New Scripts
+
+  - Alpine-Traefik [@MickLesk](https://github.com/MickLesk) ([#4412](https://github.com/community-scripts/ProxmoxVE/pull/4412))
+
+### 🚀 Updated Scripts
+
+  - Alpine: Use onliner for updates [@tremor021](https://github.com/tremor021) ([#4414](https://github.com/community-scripts/ProxmoxVE/pull/4414))
+
+  - #### 🐞 Bug Fixes
+
+    - homarr: fetch versions dynamically from source repo [@CrazyWolf13](https://github.com/CrazyWolf13) ([#4409](https://github.com/community-scripts/ProxmoxVE/pull/4409))
+
+  - #### ✨ New Features
+
+    - Feature: LXC-Delete (pve helper): add "all items" [@MickLesk](https://github.com/MickLesk) ([#4296](https://github.com/community-scripts/ProxmoxVE/pull/4296))
+
+### 🧰 Maintenance
+
+  - #### 💾 Core
+
+    - Config file Function in build.func [@michelroegl-brunner](https://github.com/michelroegl-brunner) ([#4411](https://github.com/community-scripts/ProxmoxVE/pull/4411))
+
+### 🌐 Website
+
+  - #### 📝 Script Information
+
+    - Navidrome - Fix config path (use /etc/ instead of /var/lib) [@quake1508](https://github.com/quake1508) ([#4406](https://github.com/community-scripts/ProxmoxVE/pull/4406))
+
 ## 2025-05-11
 
 ### 🚀 Updated Scripts
