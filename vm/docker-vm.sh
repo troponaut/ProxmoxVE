@@ -376,7 +376,7 @@ function advanced_settings() {
   fi
 
   if SSH_AUTHORIZED_KEY=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "SSH Authorized key for root (leave empty for none)" 8 58 --title "SSH KEY" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
-    if [ -z $SSH_AUTHORIZED_KEY ]; then
+    if [ -z "${SSH_AUTHORIZED_KEY}" ]; then
       echo -e "${SSHKEY}${BOLD}${RD}Warning: No SSH provided. root account will remain passwordless!${CL}"
     else
       echo -e "${SSHKEY}${BOLD}${RD}SSH Key for root set: ${BGN}$SSH_AUTHORIZED_KEY${CL}"
