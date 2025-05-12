@@ -487,7 +487,7 @@ msg_info "Installing pre-requisite packages to Debian 12 Qcow2 Disk Image"
 virt-customize -q -a "${FILE}" --install qemu-guest-agent,apt-transport-https,ca-certificates,curl,gnupg,software-properties-common,lsb-release,openssh-server,cloud-initramfs-growroot >/dev/null
 msg_ok "Installed pre-requisite packages to Debian 12 Qcow2 Disk Image successfully"
 
-if [ -n $SSH_AUTHORIZED_KEY ]; then
+if [ -n "${SSH_AUTHORIZED_KEY}" ]; then
   msg_info "Installing root SSH Key to Debian 12 Qcow2 Disk Image"
   virt-customize -q -a "${FILE}" --ssh-inject root:string:"${SSH_AUTHORIZED_KEY}" >/dev/null
   msg_ok "Installed root SSH Key to Debian 12 Qcow2 Disk Image successfully"
