@@ -375,13 +375,12 @@ function advanced_settings() {
     exit-script
   fi
 
-  if ROOT_SSH_KEY=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set root SSH Key" 8 58 "$DISK_SIZE" --title "SSH KEY" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+  if ROOT_SSH_KEY=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set root SSH Key" 8 58 "ssh-ed25519 " --title "SSH KEY" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z "$ROOT_SSH_KEY" ]; then
       echo -e "${SSHKEY}${BOLD}${RD}SSH Key cannot be empty.${CL}"
       exit-script
     else
-      echo -e "${SSHKEY}${BOLD}${RD}You need to set a key!${CL}"
-      exit-script
+      echo -e "${SSHKEY}${BOLD}${RD}SSH Key is: ${BGN}$ROOT_SSH_KEY${CL}"
     fi
   else
     exit-script
