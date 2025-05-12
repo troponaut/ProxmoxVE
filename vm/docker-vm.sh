@@ -57,6 +57,7 @@ GATEWAY="${TAB}🌐${TAB}${CL}"
 DEFAULT="${TAB}⚙️${TAB}${CL}"
 MACADDRESS="${TAB}🔗${TAB}${CL}"
 VLANTAG="${TAB}🏷️${TAB}${CL}"
+SSHKEY="${TAB}🔑${TAB}${CL}"
 CREATING="${TAB}🚀${TAB}${CL}"
 ADVANCED="${TAB}🧩${TAB}${CL}"
 THIN="discard=on,ssd=1,"
@@ -374,6 +375,15 @@ function advanced_settings() {
     exit-script
   fi
 
+  if ROOT_SSH_KEY=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set root SSH Key" 8 58 "$DISK_SIZE" --title "SSH KEY" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+    if [[ -z $ROOT_SSH_KEY]]; then
+      echo -e "${SSHKEY}${BOLD}${DGN}SSH Key: ${BGN}$ROOT_SSH_KEY${CL}"
+      exit-script
+    fi
+  else
+    exit-script
+  fi
+
   if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "START VIRTUAL MACHINE" --yesno "Start VM when completed?" 10 58); then
     echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}yes${CL}"
     START_VM="yes"
@@ -472,9 +482,16 @@ msg_info "Installing Pre-Requisite libguestfs-tools onto Host"
 apt-get -qq update && apt-get -qq install libguestfs-tools lsb-release -y >/dev/null
 msg_ok "Installed libguestfs-tools successfully"
 
+msg_info "Installing pre-requisite packages to Debian 12 Qcow2 Disk Image"
+virt-customize -q -a "${FILE}" --install qemu-guest-agent,apt-transport-https,ca-certificates,curl,gnupg,software-properties-common,lsb-release,openssh-server,cloud-initramfs-growroot >/dev/null
+msg_ok "Installed pre-requisite packages to Debian 12 Qcow2 Disk Image successfully"
+
+msg_info "Installing root SSH Key to Debian 12 Qcow2 Disk Image"
+virt-customize -q -a "${FILE}" --ssh-inject "root:${ROOT_SSH_KEY}"" >/dev/null
+msg_ok "Installed root SSH Key to Debian 12 Qcow2 Disk Image successfully"
+
 msg_info "Adding Docker and Docker Compose Plugin to Debian 12 Qcow2 Disk Image"
-virt-customize -q -a "${FILE}" --install qemu-guest-agent,apt-transport-https,ca-certificates,curl,gnupg,software-properties-common,lsb-release,openssh-server >/dev/null &&
-  virt-customize -q -a "${FILE}" --run-command "mkdir -p /etc/apt/keyrings && curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg" >/dev/null &&
+virt-customize -q -a "${FILE}" --run-command "mkdir -p /etc/apt/keyrings && curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg" >/dev/null &&
   virt-customize -q -a "${FILE}" --run-command "echo 'deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian bookworm stable' > /etc/apt/sources.list.d/docker.list" >/dev/null &&
   virt-customize -q -a "${FILE}" --run-command "apt-get update -qq && apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin" >/dev/null &&
   virt-customize -q -a "${FILE}" --run-command "systemctl enable docker" >/dev/null &&
