@@ -55,9 +55,9 @@ GATEWAY="${TAB}🌐${TAB}${CL}"
 DEFAULT="${TAB}⚙️${TAB}${CL}"
 MACADDRESS="${TAB}🔗${TAB}${CL}"
 VLANTAG="${TAB}🏷️${TAB}${CL}"
+SSHKEY="${TAB}🔑${TAB}${CL}"
 CREATING="${TAB}🚀${TAB}${CL}"
 ADVANCED="${TAB}🧩${TAB}${CL}"
-
 THIN="discard=on,ssd=1,"
 set -e
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
@@ -68,8 +68,8 @@ function error_handler() {
   local exit_code="$?"
   local line_number="$1"
   local command="$2"
-  local error_message="${RD}[ERROR]${CL} in line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL}: while executing command ${YW}$command${CL}"
   post_update_to_api "failed" "${command}"
+  local error_message="${RD}[ERROR]${CL} in line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL}: while executing command ${YW}$command${CL}"
   echo -e "\n$error_message\n"
   cleanup_vmid
 }
@@ -180,8 +180,8 @@ function default_settings() {
   VMID=$(get_valid_nextid)
   FORMAT=",efitype=4m"
   MACHINE=""
-  DISK_SIZE="8G"
   DISK_CACHE=""
+  DISK_SIZE="8G"
   HN="debian"
   CPU_TYPE=""
   CORE_COUNT="2"
@@ -372,6 +372,15 @@ function advanced_settings() {
   else
     exit-script
   fi
+  if SSH_AUTHORIZED_KEY=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "SSH Authorized key for root (leave empty for none)" 8 58 --title "SSH KEY" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+    if [ -z "${SSH_AUTHORIZED_KEY}" ]; then
+      echo -e "${SSHKEY}${BOLD}${RD}Warning: No SSH provided. root account will remain passwordless!${CL}"
+    else
+      echo -e "${SSHKEY}${BOLD}${RD}SSH Key for root set: ${BGN}$SSH_AUTHORIZED_KEY${CL}"
+    fi
+  else
+    exit-script
+  fi
 
   if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "START VIRTUAL MACHINE" --yesno "Start VM when completed?" 10 58); then
     echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}yes${CL}"
@@ -401,13 +410,11 @@ function start_script() {
     advanced_settings
   fi
 }
-
 check_root
 arch_check
 pve_check
 ssh_check
 start_script
-
 post_to_api_vm
 
 msg_info "Validating Storage"
@@ -439,7 +446,7 @@ fi
 msg_ok "Using ${CL}${BL}$STORAGE${CL} ${GN}for Storage Location."
 msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
 msg_info "Retrieving the URL for the Debian 12 Qcow2 Disk Image"
-URL=https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-nocloud-amd64.qcow2
+URL="https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-nocloud-$(dpkg --print-architecture).qcow2"
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
 curl -f#SL -o "$(basename "$URL")" "$URL"
@@ -447,7 +454,7 @@ echo -en "\e[1A\e[0K"
 FILE=$(basename $URL)
 msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
 
-STORAGE_TYPE=$(pvesm status -storage $STORAGE | awk 'NR>1 {print $2}')
+STORAGE_TYPE=$(pvesm status -storage "$STORAGE" | awk 'NR>1 {print $2}')
 case $STORAGE_TYPE in
 nfs | dir)
   DISK_EXT=".qcow2"
@@ -469,7 +476,31 @@ for i in {0,1}; do
   eval DISK${i}_REF=${STORAGE}:${DISK_REF:-}${!disk}
 done
 
-msg_info "Creating a Debian 12 VM"
+msg_info "Installing Pre-Requisite libguestfs-tools onto Host"
+apt-get -qq update && apt-get -qq install libguestfs-tools lsb-release -y >/dev/null
+msg_ok "Installed libguestfs-tools successfully"
+
+msg_info "Installing pre-requisite packages to Debian 12 Qcow2 Disk Image"
+virt-customize -q -a "${FILE}" --install qemu-guest-agent,apt-transport-https,ca-certificates,curl,gnupg,software-properties-common,lsb-release,openssh-server,cloud-initramfs-growroot >/dev/null
+msg_ok "Installed pre-requisite packages to Debian 12 Qcow2 Disk Image successfully"
+
+if [ -n "${SSH_AUTHORIZED_KEY}" ]; then
+  msg_info "Installing root SSH Key to Debian 12 Qcow2 Disk Image"
+  virt-customize -q -a "${FILE}" --ssh-inject root:string:"${SSH_AUTHORIZED_KEY}" >/dev/null
+  msg_ok "Installed root SSH Key to Debian 12 Qcow2 Disk Image successfully"
+else
+  msg_info "Skipping SSH Key installation as no SSH key is provided"
+fi
+
+# msg_info "Adding Docker and Docker Compose Plugin to Debian 12 Qcow2 Disk Image"
+# virt-customize -q -a "${FILE}" --run-command "mkdir -p /etc/apt/keyrings && curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg" >/dev/null &&
+#   virt-customize -q -a "${FILE}" --run-command "echo 'deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian bookworm stable' > /etc/apt/sources.list.d/docker.list" >/dev/null &&
+#   virt-customize -q -a "${FILE}" --run-command "apt-get update -qq && apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin" >/dev/null &&
+#   virt-customize -q -a "${FILE}" --run-command "systemctl enable docker" >/dev/null &&
+#   virt-customize -q -a "${FILE}" --run-command "echo -n > /etc/machine-id" >/dev/null
+# msg_ok "Added Docker and Docker Compose Plugin to Debian 12 Qcow2 Disk Image successfully"
+
+msg_info "Creating a Debian VM"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
@@ -479,6 +510,9 @@ qm set $VMID \
   -scsi0 ${DISK1_REF},${DISK_CACHE}${THIN}size=${DISK_SIZE} \
   -boot order=scsi0 \
   -serial0 socket >/dev/null
+qm resize $VMID scsi0 8G >/dev/null
+qm set $VMID --agent enabled=1 >/dev/null
+
 DESCRIPTION=$(
   cat <<EOF
 <div align='center'>
